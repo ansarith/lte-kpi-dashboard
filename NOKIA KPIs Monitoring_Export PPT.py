@@ -30,8 +30,10 @@ def load_data(path):
     return df
 
 
-DATA_PATH = r"D:\Cell Database RAN Team 2024\NOKIA KPIs Coding Monitoring\4G_Main_KPIs_Report_SRAN21B-Sarith-2025_10_13-Site KCH2567RBR & 2070_LB.xlsx"
-df = load_data(DATA_PATH)
+uploaded_file = st.file_uploader("Upload KPI Excel", type=["xlsx"])
+
+if uploaded_file:
+    df = load_data(uploaded_file)
 
 st.title("📊 LTE KPI Dashboard")
 
@@ -301,4 +303,5 @@ if figures:
         mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
 else:
+
     st.warning("⚠️ No data available for the selected filters.")
