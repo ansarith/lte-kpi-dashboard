@@ -118,7 +118,6 @@ figures_png = []
 if not plot_df.empty:
 
     colors = px.colors.qualitative.Dark24
-
     cols = st.columns(2)
 
     for idx, selected_kpi in enumerate(selected_kpis[:4]):
@@ -155,48 +154,24 @@ if not plot_df.empty:
 
         fig.update_layout(
             height=420,
+            width=900,
             title=dict(text=selected_kpi, x=0.5),
             hovermode="x unified",
             margin=dict(l=40, r=120, t=60, b=40)
         )
 
-        cols[idx % 2].plotly_chart(fig, use_container_width=True)
+        # Show in Streamlit
+        cols[idx % 2].plotly_chart(fig, use_container_width=False)
 
-        # ---------- MATPLOTLIB EXPORT GRAPH ----------
-        plt.figure(figsize=(10,4))
+        # ---------- EXPORT SAME FIGURE TO PNG ----------
+        img_bytes = fig.to_image(
+            format="png",
+            width=900,
+            height=420,
+            scale=2
+        )
 
-        if not group_option and "LNCEL name" in plot_df.columns:
-
-            for cell in plot_df["LNCEL name"].unique():
-
-                cell_df = plot_df[plot_df["LNCEL name"] == cell]
-
-                plt.plot(
-                    cell_df["Time_str"],
-                    cell_df[selected_kpi],
-                    marker="o",
-                    label=cell
-                )
-
-        else:
-
-            plt.plot(
-                plot_df["Time_str"],
-                plot_df[selected_kpi],
-                marker="o",
-                label=selected_kpi
-            )
-
-        plt.title(selected_kpi)
-        plt.xticks(rotation=45)
-        plt.legend()
-        plt.tight_layout()
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        plt.close()
-       
+        buf = io.BytesIO(img_bytes)
         figures_png.append(buf)
 
 # ---------------- CREATE PPT ----------------
@@ -255,6 +230,7 @@ if figures_png:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
