@@ -270,11 +270,11 @@ def create_ppt(figures):
         # Export chart as image
         img_buf = io.BytesIO()
         fig.write_image(
-            img_buf,
-            format="png",
-            width=int(chart_width.inches*300),
-            height=int(chart_height.inches*300),
-            scale=2
+        img_buf,
+        format="png",
+        width=900,
+        height=450,
+        scale=1
         )
         img_buf.seek(0)
 
@@ -308,6 +308,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
