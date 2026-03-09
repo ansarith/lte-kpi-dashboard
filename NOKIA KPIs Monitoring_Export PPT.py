@@ -267,15 +267,16 @@ def create_ppt(figures):
     return ppt_buffer
 if figures:
     ppt_file = create_ppt(figures)
-    st.download_button(
-        label="📊 Download PowerPoint Report",
-        data=ppt_file,
-        file_name="LTE_KPI_Report.pptx",
-        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    )
+    if ppt_file:
+        st.download_button(
+            label="📊 Download PowerPoint Report",
+            data=ppt_file,
+            file_name="LTE_KPI_Report.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
 else:
-
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
