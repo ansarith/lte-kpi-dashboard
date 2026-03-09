@@ -196,7 +196,8 @@ if not plot_df.empty:
         plt.savefig(buf, format="png")
         buf.seek(0)
         plt.close()
-
+        img_bytes = fig.to_image(format="png", width=900, height=450)
+        buf = io.BytesIO(img_bytes)
         figures_png.append(buf)
 
 # ---------------- CREATE PPT ----------------
@@ -255,3 +256,4 @@ if figures_png:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
