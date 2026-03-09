@@ -197,7 +197,13 @@ if not plot_df.empty:
         export_fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
     buf = io.BytesIO()
-    export_fig.write_image(buf, format="png", width=1400, height=600, scale=2)
+    export_fig.write_image(
+        buf,
+        format="png",
+        width=900,   # smaller width
+        height=450,  # smaller height
+        scale=1      # reduce scale
+        )
 
     st.download_button(
         label="📥 Download Chart PNG",
@@ -306,4 +312,5 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
