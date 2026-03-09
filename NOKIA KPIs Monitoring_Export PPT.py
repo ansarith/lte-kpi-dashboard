@@ -130,51 +130,50 @@ else:
     st.warning("⚠️ No data available for selected filters or KPIs.")
 
 # --- PNG Export (only local) ---
-if figures and not RUNNING_ON_CLOUD:
-    import plotly.io as pio
-    buf = io.BytesIO()
-    try:
-        figures[0].write_image(buf, format="png", width=900, height=450, scale=1)
-        buf.seek(0)
-        st.download_button("📥 Download Chart PNG", buf.getvalue(), "lte_kpi_chart.png", "image/png")
-    except Exception as e:
-        st.warning(f"PNG export failed: {e}")
-elif RUNNING_ON_CLOUD:
-    st.info("📌 PNG export disabled on Streamlit Cloud due to Kaleido limitations.")
+import os, io, plotly.io as pio, streamlit as st
 
-# --- PowerPoint Export ---
-def create_ppt(figures):
-    if not figures:
-        return None
-    import plotly.io as pio
-    prs = Presentation()
-    prs.slide_width = Inches(13.33)
-    prs.slide_height = Inches(7.5)
-    positions = [(Inches(0.5), Inches(0.5)), (Inches(6.9), Inches(0.5)),
-                 (Inches(0.5), Inches(4.0)), (Inches(6.9), Inches(4.0))]
-    chart_width, chart_height = Inches(6.08), Inches(3.04)
+RUNNING_ON_CLOUD = os.environ.get("STREAMLIT_SERVER_PORT") is not None
+
+# Only export PNG locally
+if not RUNNING_ON_CLOUD:
+    buf = io.BytesIO()
     pio.kaleido.scope.default_format = "png"
     pio.kaleido.scope.default_width = 900
     pio.kaleido.scope.default_height = 450
     pio.kaleido.scope.default_scale = 1
+    fig.to_image(buf, format="png")  # Use Kaleido
+    st.download_button("📥 Download PNG", buf.getvalue(), "chart.png", "image/png")
+else:
+    st.info("PNG export is disabled on Streamlit Cloud")
+
+# --- PowerPoint Export ---
+def create_ppt(figures):
+    import io
+    from pptx import Presentation
+    from pptx.util import Inches
+
+    prs = Presentation()
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+
+    positions = [
+        (Inches(0.5), Inches(0.5)),
+        (Inches(6.9), Inches(0.5)),
+        (Inches(0.5), Inches(4.0)),
+        (Inches(6.9), Inches(4.0))
+    ]
+
+    chart_width = Inches(6.08)
+    chart_height = Inches(3.04)
 
     for idx, fig in enumerate(figures):
-        if fig is None or len(fig.data) == 0:
-            continue
-        if idx % 4 == 0:
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-        # Export figure to image safely
+        slide = prs.slides.add_slide(prs.slide_layouts[5])
         img_buf = io.BytesIO()
-        try:
-            img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
-            img_buf.write(img_bytes)
+        if not RUNNING_ON_CLOUD:
+            img_buf.write(fig.to_image(format="png", width=900, height=450, scale=1))
             img_buf.seek(0)
-        except RuntimeError:
-            st.warning("⚠️ Skipping chart due to Kaleido error")
-            continue
-        pos_idx = idx % 4
-        slide.shapes.add_picture(img_buf, positions[pos_idx][0], positions[pos_idx][1], width=chart_width, height=chart_height)
-
+            slide.shapes.add_picture(img_buf, positions[idx % 4][0], positions[idx % 4][1],
+                                     width=chart_width, height=chart_height)
     ppt_buffer = io.BytesIO()
     prs.save(ppt_buffer)
     ppt_buffer.seek(0)
@@ -189,3 +188,4 @@ if figures:
             "LTE_KPI_Report.pptx",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
+
