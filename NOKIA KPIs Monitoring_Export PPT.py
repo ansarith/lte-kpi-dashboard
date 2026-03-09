@@ -196,23 +196,6 @@ if not plot_df.empty:
     else:
         export_fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
-    if not RUNNING_ON_CLOUD:
-        import plotly.io as pio
-        buf = io.BytesIO()
-        pio.kaleido.scope.default_format = "png"
-        pio.kaleido.scope.default_width = 900
-        pio.kaleido.scope.default_height = 450
-        pio.kaleido.scope.default_scale = 1
-        export_fig.write_image(buf)
-        st.download_button(
-            label="📥 Download Chart PNG",
-            data=buf.getvalue(),
-            file_name="lte_kpi_chart.png",
-            mime="image/png"
-        )
-    else:
-        st.info("📌 PNG export is disabled on Streamlit Cloud due to Kaleido limitations.")
-
     # -------- POWERPOINT EXPORT --------
     from pptx.util import Pt  # for font sizes
 
@@ -290,6 +273,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
