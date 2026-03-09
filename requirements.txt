@@ -1,6 +1,7 @@
-streamlit>=1.30
-pandas>=2.0
-plotly>=5.18
-python-pptx>=0.6.21
-openpyxl>=3.1
-kaleido>=0.2.1
+streamlit
+pandas
+matplotlib
+python-pptx
+openpyxl
+pillow
+plotly
