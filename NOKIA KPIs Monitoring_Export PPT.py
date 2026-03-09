@@ -193,35 +193,37 @@ if not plot_df.empty:
     else:
         export_fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
-    buf = io.BytesIO()
-    import plotly.io as pio
-    pio.kaleido.scope.default_format = "png"
-    pio.kaleido.scope.default_width = 900
-    pio.kaleido.scope.default_height = 450
-    pio.kaleido.scope.default_scale = 1
-    export_fig.write_image(buf)
-
-    st.download_button(
-        label="📥 Download Chart PNG",
-        data=buf.getvalue(),
-        file_name="lte_kpi_chart.png",
-        mime="image/png"
-    )
-
+    if RUNNING_ON_CLOUD:
+        st.info("📌 PNG export is disabled on Streamlit Cloud due to Kaleido limitations.")
+    else:
+        # local PNG export
+        import plotly.io as pio
+        buf = io.BytesIO()
+        pio.kaleido.scope.default_format = "png"
+        pio.kaleido.scope.default_width = 900
+        pio.kaleido.scope.default_height = 450
+        pio.kaleido.scope.default_scale = 1
+        export_fig.write_image(buf)
+        st.download_button(
+            label="📥 Download Chart PNG",
+            data=buf.getvalue(),
+            file_name="lte_kpi_chart.png",
+            mime="image/png"
+        )
 
     # -------- POWERPOINT EXPORT --------
     from pptx.util import Pt  # for font sizes
 
 # -------- POWERPOINT EXPORT --------
 def create_ppt(figures):
+    from pptx import Presentation
     from pptx.util import Inches
+    import io
 
-    # Create a widescreen PPT (16:9)
     prs = Presentation()
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
 
-    # Positions for up to 4 charts per slide
     positions = [
         (Inches(0.5), Inches(0.5)),
         (Inches(6.9), Inches(0.5)),
@@ -233,50 +235,30 @@ def create_ppt(figures):
     chart_height = Inches(3.04)
 
     import plotly.io as pio
-    # Safe defaults for Cloud
     pio.kaleido.scope.default_format = "png"
     pio.kaleido.scope.default_width = 900
     pio.kaleido.scope.default_height = 450
     pio.kaleido.scope.default_scale = 1
 
     for idx, fig in enumerate(figures):
-        # New slide every 4 charts
         if idx % 4 == 0:
             slide = prs.slides.add_slide(prs.slide_layouts[5])
 
-        # Force x-axis to string (for dates)
+        # Force x-axis to string
         for trace in fig.data:
             if hasattr(trace, 'x'):
                 trace.x = [str(x) for x in trace.x]
 
-        # Update layout for fonts & legend
-        fig.update_layout(
-            title_font=dict(size=28),
-            legend=dict(
-                x=1.05, y=1,
-                font=dict(size=14),
-                bgcolor="rgba(255,255,255,0)"
-            ),
-            xaxis=dict(
-                title_font=dict(size=16),
-                tickfont=dict(size=12)
-            ),
-            yaxis=dict(
-                title_font=dict(size=16),
-                tickfont=dict(size=12)
-            ),
-            margin=dict(l=60, r=150, t=60, b=60),
-            height=int(chart_height.inches * 150),
-            width=int(chart_width.inches * 300)
-        )
-
-        # Export PNG safely
+        # Safe PNG export
         img_buf = io.BytesIO()
-        img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
-        img_buf.write(img_bytes)
-        img_buf.seek(0)
+        try:
+            img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
+            img_buf.write(img_bytes)
+            img_buf.seek(0)
+        except RuntimeError:
+            # fallback: skip image on Cloud if Kaleido fails
+            continue
 
-        # Determine position
         pos_idx = idx % 4
         slide.shapes.add_picture(
             img_buf,
@@ -286,7 +268,6 @@ def create_ppt(figures):
             height=chart_height
         )
 
-    # Save PPT to buffer
     ppt_buffer = io.BytesIO()
     prs.save(ppt_buffer)
     ppt_buffer.seek(0)
@@ -302,6 +283,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
