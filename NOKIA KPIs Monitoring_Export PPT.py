@@ -196,9 +196,6 @@ if not plot_df.empty:
     else:
         export_fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
-    import os
-
-    RUNNING_ON_CLOUD = os.environ.get("STREAMLIT_SERVER_PORT") is not None
     if not RUNNING_ON_CLOUD:
         import plotly.io as pio
         buf = io.BytesIO()
@@ -224,7 +221,12 @@ def create_ppt(figures):
     from pptx import Presentation
     from pptx.util import Inches
     import io
-
+    fig.update_layout(
+        title_font=dict(size=28),
+        legend=dict(font=dict(size=20)),
+        xaxis=dict(title_font=dict(size=18), tickfont=dict(size=14)),
+        yaxis=dict(title_font=dict(size=18), tickfont=dict(size=14))
+    )
     prs = Presentation()
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
@@ -288,6 +290,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
