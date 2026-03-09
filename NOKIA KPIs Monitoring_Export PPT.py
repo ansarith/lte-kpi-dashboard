@@ -268,15 +268,24 @@ def create_ppt(figures):
         )
 
         # Export chart as image
-        img_buf = io.BytesIO()
-        fig.write_image(
-        img_buf,
-        format="png",
-        width=900,
-        height=450,
-        scale=1
+        import plotly.io as pio
+
+        # Set safe defaults
+        pio.kaleido.scope.default_format = "png"
+        pio.kaleido.scope.default_width = 900
+        pio.kaleido.scope.default_height = 450
+        pio.kaleido.scope.default_scale = 1
+        
+        # Export PNG safely
+        buf = io.BytesIO()
+        img_bytes = export_fig.to_image(
+            format="png",
+            width=900,
+            height=450,
+            scale=1
         )
-        img_buf.seek(0)
+        buf.write(img_bytes)
+        buf.seek(0)
 
         # Determine position on slide
         pos_idx = fig_idx % 4
@@ -308,6 +317,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
