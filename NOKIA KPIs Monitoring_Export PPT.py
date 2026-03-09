@@ -204,12 +204,8 @@ def create_ppt(figures):
     from pptx import Presentation
     from pptx.util import Inches
     import io
-    fig.update_layout(
-        title_font=dict(size=28),
-        legend=dict(font=dict(size=20)),
-        xaxis=dict(title_font=dict(size=18), tickfont=dict(size=14)),
-        yaxis=dict(title_font=dict(size=18), tickfont=dict(size=14))
-    )
+    import plotly.io as pio
+
     prs = Presentation()
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
@@ -224,31 +220,38 @@ def create_ppt(figures):
     chart_width = Inches(6.08)
     chart_height = Inches(3.04)
 
-    import plotly.io as pio
     pio.kaleido.scope.default_format = "png"
     pio.kaleido.scope.default_width = 900
     pio.kaleido.scope.default_height = 450
     pio.kaleido.scope.default_scale = 1
 
+    if not figures:
+        return None  # No figures to process
+
     for idx, fig in enumerate(figures):
+        if fig is None:
+            continue  # Skip if figure is None
+
+        # Add a new slide every 4 charts
         if idx % 4 == 0:
             slide = prs.slides.add_slide(prs.slide_layouts[5])
 
-        # Force x-axis to string
+        # Force x-axis to string for safe export
         for trace in fig.data:
             if hasattr(trace, 'x'):
                 trace.x = [str(x) for x in trace.x]
 
-        # Safe PNG export
+        # Try exporting PNG safely
         img_buf = io.BytesIO()
         try:
             img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
             img_buf.write(img_bytes)
             img_buf.seek(0)
         except RuntimeError:
-            # fallback: skip image on Cloud if Kaleido fails
+            st.warning(f"⚠️ Skipping a chart in PPT due to Kaleido error.")
             continue
 
+        # Add picture to slide
         pos_idx = idx % 4
         slide.shapes.add_picture(
             img_buf,
@@ -273,6 +276,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
