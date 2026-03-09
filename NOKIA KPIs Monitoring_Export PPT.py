@@ -31,9 +31,10 @@ def load_data(path):
 
 
 uploaded_file = st.file_uploader("Upload KPI Excel", type=["xlsx"])
-
 if uploaded_file:
     df = load_data(uploaded_file)
+else:
+    st.stop()
 
 st.title("📊 LTE KPI Dashboard")
 
@@ -305,3 +306,4 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
