@@ -79,34 +79,39 @@ if not plot_df.empty:
         figures.append(fig)
 
 # ------------------ PPT Export (Kaleido-free) ------------------
-def create_ppt(figures):
-    if not figures:
-        return None
+import plotly.graph_objects as go
+from pptx import Presentation
+from pptx.util import Inches
+import io
+import asyncio
+from pyppeteer import launch
+from tempfile import NamedTemporaryFile
+
+async def fig_to_png(fig):
+    """Convert Plotly figure to PNG via headless browser."""
+    with NamedTemporaryFile(suffix=".html", delete=False) as f:
+        fig.write_html(f.name)
+        browser = await launch(headless=True, args=['--no-sandbox'])
+        page = await browser.newPage()
+        await page.goto(f"file://{f.name}")
+        png_bytes = await page.screenshot()
+        await browser.close()
+    return png_bytes
+
+def create_ppt_with_screenshots(figures):
     prs = Presentation()
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
-    positions = [(Inches(0.5),Inches(0.5)),(Inches(6.9),Inches(0.5)),
-                 (Inches(0.5),Inches(4.0)),(Inches(6.9),Inches(4.0))]
+    positions = [(Inches(0.5),Inches(0.5)), (Inches(6.9),Inches(0.5)),
+                 (Inches(0.5),Inches(4.0)), (Inches(6.9),Inches(4.0))]
     chart_width = Inches(6.08)
     chart_height = Inches(3.04)
 
     for idx, fig in enumerate(figures):
         if idx % 4 == 0:
             slide = prs.slides.add_slide(prs.slide_layouts[5])
-
-        # Export to PNG using PIL fallback
-        img_buf = io.BytesIO()
-        try:
-            img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
-            img_buf.write(img_bytes)
-            img_buf.seek(0)
-        except Exception:
-            # fallback: render empty chart
-            import PIL.Image as Image
-            blank = Image.new("RGB", (900,450), (255,255,255))
-            blank.save(img_buf, format="PNG")
-            img_buf.seek(0)
-
+        png_bytes = asyncio.get_event_loop().run_until_complete(fig_to_png(fig))
+        img_buf = io.BytesIO(png_bytes)
         slide.shapes.add_picture(img_buf, positions[idx%4][0], positions[idx%4][1],
                                  width=chart_width, height=chart_height)
 
@@ -114,7 +119,6 @@ def create_ppt(figures):
     prs.save(ppt_buffer)
     ppt_buffer.seek(0)
     return ppt_buffer
-
 if figures:
     ppt_file = create_ppt(figures)
     if ppt_file:
@@ -123,3 +127,4 @@ if figures:
                            "application/vnd.openxmlformats-officedocument.presentationml.presentation")
 else:
     st.warning("⚠️ No data available for the selected filters.")
+
