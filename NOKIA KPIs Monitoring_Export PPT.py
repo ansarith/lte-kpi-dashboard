@@ -214,10 +214,12 @@ if not plot_df.empty:
 
 # -------- POWERPOINT EXPORT --------
 def create_ppt(figures):
+    from pptx.util import Inches
+
     # Create a widescreen PPT (16:9)
     prs = Presentation()
-    prs.slide_width = Inches(13.33)  # 16 units
-    prs.slide_height = Inches(7.5)   # 9 units
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
 
     # Positions for up to 4 charts per slide
     positions = [
@@ -227,68 +229,55 @@ def create_ppt(figures):
         (Inches(6.9), Inches(4.0))
     ]
 
-    # Chart size in inches
     chart_width = Inches(6.08)
     chart_height = Inches(3.04)
 
-    for fig_idx, fig in enumerate(figures):
-        # Create a new slide every 4 charts
-        if fig_idx % 4 == 0 and fig_idx != 0:
-            slide = prs.slides.add_slide(prs.slide_layouts[5])
-        elif fig_idx == 0:
+    import plotly.io as pio
+    # Safe defaults for Cloud
+    pio.kaleido.scope.default_format = "png"
+    pio.kaleido.scope.default_width = 900
+    pio.kaleido.scope.default_height = 450
+    pio.kaleido.scope.default_scale = 1
+
+    for idx, fig in enumerate(figures):
+        # New slide every 4 charts
+        if idx % 4 == 0:
             slide = prs.slides.add_slide(prs.slide_layouts[5])
 
-        # Force x-axis to strings for date formatting
+        # Force x-axis to string (for dates)
         for trace in fig.data:
             if hasattr(trace, 'x'):
                 trace.x = [str(x) for x in trace.x]
 
-        # Update layout
+        # Update layout for fonts & legend
         fig.update_layout(
-           
-            title_font=dict(size=34),   # Increase KPI title size
-            margin=dict(l=60, r=150, t=60, b=60),
+            title_font=dict(size=28),
             legend=dict(
                 x=1.05, y=1,
-                font=dict(size=28),
-                bgcolor="rgba(255,255,255,0)",
-                bordercolor="black",
-                borderwidth=0.5
+                font=dict(size=14),
+                bgcolor="rgba(255,255,255,0)"
             ),
             xaxis=dict(
-                title_font=dict(size=32),
-                tickfont=dict(size=18) # Smaller for dates
+                title_font=dict(size=16),
+                tickfont=dict(size=12)
             ),
             yaxis=dict(
-                title_font=dict(size=32),
-                tickfont=dict(size=32)
+                title_font=dict(size=16),
+                tickfont=dict(size=12)
             ),
-            height=int(chart_height.inches*150),
-            width=int(chart_width.inches*300)
+            margin=dict(l=60, r=150, t=60, b=60),
+            height=int(chart_height.inches * 150),
+            width=int(chart_width.inches * 300)
         )
 
-        # Export chart as image
-        import plotly.io as pio
-
-        # Set safe defaults
-        pio.kaleido.scope.default_format = "png"
-        pio.kaleido.scope.default_width = 900
-        pio.kaleido.scope.default_height = 450
-        pio.kaleido.scope.default_scale = 1
-        
         # Export PNG safely
-        buf = io.BytesIO()
-        img_bytes = export_fig.to_image(
-            format="png",
-            width=900,
-            height=450,
-            scale=1
-        )
-        buf.write(img_bytes)
-        buf.seek(0)
+        img_buf = io.BytesIO()
+        img_bytes = fig.to_image(format="png", width=900, height=450, scale=1)
+        img_buf.write(img_bytes)
+        img_buf.seek(0)
 
-        # Determine position on slide
-        pos_idx = fig_idx % 4
+        # Determine position
+        pos_idx = idx % 4
         slide.shapes.add_picture(
             img_buf,
             positions[pos_idx][0],
@@ -302,12 +291,8 @@ def create_ppt(figures):
     prs.save(ppt_buffer)
     ppt_buffer.seek(0)
     return ppt_buffer
-
-
-# ---------- CALL FUNCTION AND DOWNLOAD BUTTON ----------
 if figures:
     ppt_file = create_ppt(figures)
-
     st.download_button(
         label="📊 Download PowerPoint Report",
         data=ppt_file,
@@ -317,6 +302,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
