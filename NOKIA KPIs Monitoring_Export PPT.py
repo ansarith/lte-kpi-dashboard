@@ -196,10 +196,10 @@ if not plot_df.empty:
     else:
         export_fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
-    if RUNNING_ON_CLOUD:
-        st.info("📌 PNG export is disabled on Streamlit Cloud due to Kaleido limitations.")
-    else:
-        # local PNG export
+    import os
+
+    RUNNING_ON_CLOUD = os.environ.get("STREAMLIT_SERVER_PORT") is not None
+    if not RUNNING_ON_CLOUD:
         import plotly.io as pio
         buf = io.BytesIO()
         pio.kaleido.scope.default_format = "png"
@@ -213,6 +213,8 @@ if not plot_df.empty:
             file_name="lte_kpi_chart.png",
             mime="image/png"
         )
+    else:
+        st.info("📌 PNG export is disabled on Streamlit Cloud due to Kaleido limitations.")
 
     # -------- POWERPOINT EXPORT --------
     from pptx.util import Pt  # for font sizes
@@ -286,6 +288,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
