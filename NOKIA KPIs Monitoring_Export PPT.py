@@ -21,6 +21,7 @@ def load_data(path):
     df["Period start time"] = pd.to_datetime(df["Period start time"], errors="coerce")
 
     percentage_kpis = [col for col in df.columns if "%" in col or "Rate" in col]
+
     for col in percentage_kpis:
         if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
             if df[col].max() <= 1.0:
@@ -103,6 +104,7 @@ def aggregate_data(df, kpis, daily=False, group=False):
 plot_df = aggregate_data(plot_df, selected_kpis, daily_option, group_option)
 
 time_col = "Date" if daily_option else "Period start time"
+
 plot_df[time_col] = pd.to_datetime(plot_df[time_col], errors="coerce")
 plot_df = plot_df.dropna(subset=[time_col])
 
@@ -110,15 +112,57 @@ plot_df["Time_str"] = plot_df[time_col].dt.strftime(
     "%Y-%m-%d" if daily_option else "%Y-%m-%d %H:%M"
 )
 
-# ---------------- DASHBOARD ----------------
+# ---------------- DASHBOARD (PLOTLY) ----------------
 figures_png = []
 
 if not plot_df.empty:
+
+    colors = px.colors.qualitative.Dark24
 
     cols = st.columns(2)
 
     for idx, selected_kpi in enumerate(selected_kpis[:4]):
 
+        fig = go.Figure()
+
+        # ---------- PLOTLY DASHBOARD GRAPH ----------
+        if not group_option and "LNCEL name" in plot_df.columns:
+
+            for i, cell in enumerate(plot_df["LNCEL name"].unique()):
+
+                cell_df = plot_df[plot_df["LNCEL name"] == cell]
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=cell_df["Time_str"],
+                        y=cell_df[selected_kpi],
+                        mode="lines+markers",
+                        name=cell,
+                        line=dict(color=colors[i % len(colors)])
+                    )
+                )
+
+        else:
+
+            fig.add_trace(
+                go.Scatter(
+                    x=plot_df["Time_str"],
+                    y=plot_df[selected_kpi],
+                    mode="lines+markers",
+                    name=selected_kpi
+                )
+            )
+
+        fig.update_layout(
+            height=420,
+            title=dict(text=selected_kpi, x=0.5),
+            hovermode="x unified",
+            margin=dict(l=40, r=120, t=60, b=40)
+        )
+
+        cols[idx % 2].plotly_chart(fig, use_container_width=True)
+
+        # ---------- MATPLOTLIB EXPORT GRAPH ----------
         plt.figure(figsize=(10,4))
 
         if not group_option and "LNCEL name" in plot_df.columns:
@@ -155,8 +199,6 @@ if not plot_df.empty:
 
         figures_png.append(buf)
 
-        cols[idx % 2].image(buf, use_container_width=True)
-
 # ---------------- CREATE PPT ----------------
 def create_ppt(figures_png):
 
@@ -191,7 +233,9 @@ def create_ppt(figures_png):
         )
 
     ppt_buffer = io.BytesIO()
+
     prs.save(ppt_buffer)
+
     ppt_buffer.seek(0)
 
     return ppt_buffer
