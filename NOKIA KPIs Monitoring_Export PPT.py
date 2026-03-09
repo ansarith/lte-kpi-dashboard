@@ -7,6 +7,9 @@ import io
 from pptx import Presentation
 from pptx.util import Inches
 
+# Detect if running on Streamlit Cloud
+RUNNING_ON_CLOUD = os.environ.get("STREAMLIT_SERVER_PORT") is not None
+
 st.set_page_config(layout="wide")
 
 # ----------------------------------------------------
@@ -283,6 +286,7 @@ if figures:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
+
 
 
 
