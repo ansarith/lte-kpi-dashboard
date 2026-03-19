@@ -36,7 +36,14 @@ st.title("📊 LTE KPI Dashboard")
 
 # ---------------- KPI SELECTION ----------------
 kpi_columns = [col for col in df.columns if col not in ["Period start time","LNBTS name","LNCEL name"]]
-selected_kpis = st.multiselect("Select KPI(s)", options=kpi_columns, default=kpi_columns[:4])
+selected_kpis = st.multiselect(
+    "Select KPI(s)",
+    options=kpi_columns,
+    default=kpi_columns[:4]
+)
+
+# 🎯 Ensure consistent order (fix color shifting)
+selected_kpis = sorted(selected_kpis)
 
 # ---------------- SITE FILTER ----------------
 enodeb_selected = st.multiselect("Select LNBTS name", options=sorted(df["LNBTS name"].unique()))
@@ -72,11 +79,11 @@ def aggregate_data(df, kpis, daily=False, group=False):
 
     for kpi in kpis:
         if kpi in [
-            "PDCP SDU Volume, DL",
-            "PDCP SDU Volume, UL",
-            "Total LTE data volume, DL + UL",
-            "Avg RRC conn UE",
-            "RRC Connected UEs Max (M8051C56)"
+            "DL Data Total Volume (Gbyte)",
+            "UL Data Total Volume (Gbyte)",
+            "Total Data Total Volume (Gbyte)",
+            "Ave RRC Connected Ue",
+            "Max RRC Connected Ue"
         ]:
             agg_dict[kpi] = "sum"
         else:
@@ -84,6 +91,12 @@ def aggregate_data(df, kpis, daily=False, group=False):
 
     if daily:
         df["Date"] = df["Period start time"].dt.normalize()
+    
+        first_day = df["Date"].min()
+        last_day = df["Date"].max()
+    
+        df = df[(df["Date"] > first_day) & (df["Date"] < last_day)]
+    
         time_col = "Date"
     else:
         time_col = "Period start time"
@@ -113,11 +126,27 @@ plot_df["Time_str"] = plot_df[time_col].dt.strftime(
 )
 
 # ---------------- DASHBOARD (PLOTLY) ----------------
+# ---------------- DASHBOARD (PLOTLY) ----------------
 figures_png = []
 
 if not plot_df.empty:
 
     colors = px.colors.qualitative.Dark24
+
+    # 🎯 KPI color map (ALWAYS needed)
+    kpi_color_map = {
+        kpi: colors[i % len(colors)]
+        for i, kpi in enumerate(sorted(selected_kpis))
+    }
+
+    # 🎯 Cell color map (ONLY for non-group mode)
+    if not group_option and "LNCEL name" in plot_df.columns:
+        unique_cells = sorted(plot_df["LNCEL name"].unique())
+        color_map = {
+            cell: colors[i % len(colors)]
+            for i, cell in enumerate(unique_cells)
+        }
+
     cols = st.columns(2)
 
     for idx, selected_kpi in enumerate(selected_kpis[:4]):
@@ -127,7 +156,7 @@ if not plot_df.empty:
         # ---------- PLOTLY DASHBOARD GRAPH ----------
         if not group_option and "LNCEL name" in plot_df.columns:
 
-            for i, cell in enumerate(plot_df["LNCEL name"].unique()):
+            for cell in sorted(plot_df["LNCEL name"].unique()):
 
                 cell_df = plot_df[plot_df["LNCEL name"] == cell]
 
@@ -137,7 +166,7 @@ if not plot_df.empty:
                         y=cell_df[selected_kpi],
                         mode="lines+markers",
                         name=cell,
-                        line=dict(color=colors[i % len(colors)])
+                        line=dict(color=color_map[cell])
                     )
                 )
 
@@ -148,7 +177,8 @@ if not plot_df.empty:
                     x=plot_df["Time_str"],
                     y=plot_df[selected_kpi],
                     mode="lines+markers",
-                    name=selected_kpi
+                    name=selected_kpi,
+                    line=dict(color=colors[0])
                 )
             )
 
@@ -230,7 +260,6 @@ if figures_png:
 else:
 
     st.warning("⚠️ No data available for the selected filters.")
-
 
 
 
